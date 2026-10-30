@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__HL_Video3",
+      "mcp__Hugging_Face",
+      "Bash(scripts/assemble.sh:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(ffprobe:*)"
+    ]
+  }
+}
