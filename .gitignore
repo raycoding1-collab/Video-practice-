@@ -1,0 +1,4 @@
+# Generated media is large; keep it out of git
+*.mp4
+*.mov
+*.webm
