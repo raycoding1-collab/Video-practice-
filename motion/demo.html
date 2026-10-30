@@ -13,6 +13,18 @@
              animation-delay: calc(var(--s) * 1s + var(--d, 0s)); }
   .ch { display: inline-block; }
 
+  /* Camera: whip in on each cut, slow push-in while on screen, shake on impacts */
+  .scene > .cam { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+                  justify-content: center; animation: whip .26s cubic-bezier(.15,.85,.25,1) both,
+                  drift calc(var(--len) * 1s) linear both; }
+  .scene.shake > .cam { animation: whip .26s cubic-bezier(.15,.85,.25,1) both,
+                        drift calc(var(--len) * 1s) linear both, shake .34s linear both; }
+  #flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+  @keyframes whip { from { translate: calc(var(--dir) * 160px) 0; filter: blur(5px); } to { translate: 0 0; filter: none; } }
+  @keyframes drift { from { scale: 1; } to { scale: 1.07; } }
+  @keyframes shake { 0% { rotate: 0deg; } 12% { rotate: -1.8deg; } 26% { rotate: 1.4deg; } 40% { rotate: -1deg; }
+                     55% { rotate: .6deg; } 75% { rotate: -.3deg; } 100% { rotate: 0deg; } }
+
   /* 1: OKAY, */
   #s1 { background: var(--red); }
   #s1 .big { font-size: 150px; color: var(--ink); letter-spacing: -6px; animation: slam .45s; }
@@ -30,7 +42,8 @@
   #s3 .g { font-size: 96px; color: #fff; text-align: center; line-height: .95; animation: glitch 1.1s linear; }
 
   /* 4: 3D ELEMENTS */
-  #s4 { background: var(--paper); perspective: 900px; }
+  #s4 { background: var(--paper); }
+  #s4 .row { perspective: 700px; }
   #s4 .row { display: flex; align-items: center; gap: 36px; }
   #s4 .three { font-size: 210px; color: var(--ink); letter-spacing: -8px; animation: up .4s; }
   #s4 .el { font-size: 74px; color: var(--ink); letter-spacing: 2px; margin-top: 10px; animation: up .4s; --d: .2s; }
@@ -91,43 +104,70 @@
 </style>
 </head>
 <body>
-  <section class="scene" id="s1" data-start="0" data-end="1.1">
+  <section class="scene shake" id="s1" data-start="0" data-end="1.0">
     <div class="big">OKAY,</div><div class="ha a">HA</div><div class="ha b">HA</div>
   </section>
-  <section class="scene" id="s2" data-start="1.1" data-end="2.2">
+  <section class="scene shake" id="s2" data-start="1.0" data-end="2.0">
     <div class="l">NO</div><div class="l r">GPU.</div>
   </section>
-  <section class="scene" id="s3" data-start="2.2" data-end="3.3">
+  <section class="scene" id="s3" data-start="2.0" data-end="3.0">
     <div class="g">NO<br>CREDITS</div>
   </section>
-  <section class="scene" id="s4" data-start="3.3" data-end="4.6">
+  <section class="scene shake" id="s4" data-start="3.0" data-end="4.5">
     <div class="row"><div class="three">3D</div>
       <div class="cube"><div class="f1"></div><div class="f2"></div><div class="f3"></div><div class="f4"></div><div class="f5"></div><div class="f6"></div></div></div>
     <div class="el">ELEMENTS</div>
   </section>
-  <section class="scene" id="s5" data-start="4.6" data-end="5.8">
+  <section class="scene" id="s5" data-start="4.5" data-end="5.5">
     <div class="w split">UNLIMITED</div><div class="sub">RENDERS PER DAY</div>
   </section>
-  <section class="scene" id="s6" data-start="5.8" data-end="7.1">
+  <section class="scene" id="s6" data-start="5.5" data-end="7.0">
     <div class="r">RENDER.</div><div class="tc" id="tc">00:00:00</div><div class="streak"></div>
   </section>
-  <section class="scene" id="s7" data-start="7.1" data-end="8.2">
+  <section class="scene shake" id="s7" data-start="7.0" data-end="8.0">
     <div class="l">NO</div><div class="l r">LIMITS</div><div class="l c">AT ALL.</div>
   </section>
-  <section class="scene" id="s8" data-start="8.2" data-end="9.8">
+  <section class="scene shake" id="s8" data-start="8.0" data-end="10.0">
     <div class="m">MADE WITH</div><div class="c">CLAUDE</div><div class="line"></div>
   </section>
+  <div id="flash"></div>
 <script>
-  window.DURATION = 9.8;
+  window.DURATION = 10;
+  // 120 BPM: every cut lands on a beat (0.5 s).
+  window.SOUND = { bpm: 120, music: [0, 8], cues: [] };
+  const cue = (t, sfx, len) => window.SOUND.cues.push(len ? { t, sfx, len } : { t, sfx });
   const scenes = [...document.querySelectorAll('.scene')];
-  scenes.forEach((s) => s.style.setProperty('--s', s.dataset.start));
+  scenes.forEach((s, i) => {
+    // The camera moves the content, not the scene's background, so no edges show.
+    const cam = document.createElement('div');
+    cam.className = 'cam';
+    cam.append(...s.childNodes);
+    s.append(cam);
+    s.style.setProperty('--s', s.dataset.start);
+    s.style.setProperty('--len', s.dataset.end - s.dataset.start);
+    s.style.setProperty('--dir', i % 2 ? -1 : 1);
+    if (+s.dataset.start > 0) cue(+s.dataset.start, 'whoosh', 0.3);
+  });
+  // Sound design, timed to what happens on screen.
+  [[0, 'hit'], [.35, 'pop'], [.55, 'pop'],              // OKAY, HA HA
+   [1, 'hit'], [1.18, 'thud'],                           // NO / GPU.
+   [2, 'glitch'], [2.62, 'glitch'],                      // NO CREDITS
+   [3, 'hit'], [3.05, 'swish'],                          // 3D + cube
+   [5.5, 'thud'], [5.9, 'whoosh', .5],                   // RENDER. + light streak
+   [7, 'riser', 1.4], [7, 'hit'], [7.15, 'thud'], [7.3, 'thud'], // NO LIMITS AT ALL.
+   [8, 'drop']].forEach((c) => cue(...c));
+  'UNLIMITED'.split('').forEach((_, i) => cue(4.5 + i * .05, 'tick'));
+  for (let k = 0; k < 10; k++) cue(5.6 + k * .1, 'tick');   // timecode counting
+  const flashes = [0, 1, 3, 7, 8];
   document.querySelectorAll('.split').forEach((el) => {
     el.innerHTML = [...el.textContent].map((c, i) => `<span class="ch" style="--i:${i}">${c}</span>`).join('');
   });
   const tc = document.getElementById('tc');
+  const flash = document.getElementById('flash');
   window.seek = (t) => {
     for (const s of scenes) s.style.display = t >= +s.dataset.start && t < +s.dataset.end ? 'flex' : 'none';
-    const k = Math.max(0, Math.min(1, (t - 5.8) / 1.2));
+    flash.style.opacity = Math.max(0, ...flashes.map((f) => (t >= f ? 0.85 * Math.exp(-(t - f) / 0.05) : 0)));
+    const k = Math.max(0, Math.min(1, (t - 5.5) / 1.2));
     const f = Math.floor((1 - (1 - k) ** 3) * 4 * 3600);
     tc.textContent = [f / 3600, (f / 60) % 60, f % 60].map((n) => String(Math.floor(n)).padStart(2, '0')).join(':');
   };
